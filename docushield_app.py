@@ -158,6 +158,31 @@ def load_feature_extractor():
     model.eval()
     return model
 
+def get_signature_embedding(img_rgb: np.ndarray, model) -> np.ndarray:
+    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    coords = cv2.findNonZero(binary)
+    
+    if coords is not None:
+        x, y, w, h = cv2.boundingRect(coords)
+        cropped_rgb = img_rgb[y:y+h, x:x+w]
+    else:
+        cropped_rgb = img_rgb
+        
+    img_pil = Image.fromarray(cropped_rgb).convert("RGB")
+    
+    preprocess = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    
+    input_tensor = preprocess(img_pil).unsqueeze(0)
+    with torch.no_grad():
+        features = model(input_tensor)
+        
+    return features.numpy().flatten()
+
 def preprocess_sig(img_rgb: np.ndarray, size=(400, 200)) -> np.ndarray:
     gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
     resized = cv2.resize(gray, size, interpolation=cv2.INTER_AREA)
