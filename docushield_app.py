@@ -151,6 +151,13 @@ def load_gray(uploaded) -> np.ndarray:
     img = Image.open(uploaded).convert("RGB")
     return np.array(img)
 
+@st.cache_resource
+def load_feature_extractor():
+    model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+    model.classifier = torch.nn.Identity()
+    model.eval()
+    return model
+
 def preprocess_sig(img_rgb: np.ndarray, size=(400, 200)) -> np.ndarray:
     gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
     resized = cv2.resize(gray, size, interpolation=cv2.INTER_AREA)
