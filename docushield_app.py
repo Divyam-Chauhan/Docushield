@@ -189,13 +189,6 @@ def compute_dl_similarity(img1: np.ndarray, img2: np.ndarray, model):
     sim = 1.0 - cosine(emb1, emb2)
     return sim
 
-def edge_diff(img1: np.ndarray, img2: np.ndarray):
-    e1 = cv2.Canny(img1, 50, 150)
-    e2 = cv2.Canny(img2, 50, 150)
-    diff = cv2.absdiff(e1, e2)
-    edge_score = 1.0 - (np.sum(diff > 0) / max(np.sum(e1 > 0) + np.sum(e2 > 0), 1))
-    return edge_score, e1, e2, diff
-
 def heatmap_fig(diff_img: np.ndarray, title: str):
     fig, ax = plt.subplots(figsize=(5, 2.5))
     fig.patch.set_facecolor('#0f172a')
