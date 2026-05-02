@@ -189,11 +189,6 @@ def compute_dl_similarity(img1: np.ndarray, img2: np.ndarray, model):
     sim = 1.0 - cosine(emb1, emb2)
     return sim
 
-def compute_ssim(img1: np.ndarray, img2: np.ndarray):
-    score, diff = ssim(img1, img2, full=True)
-    diff_norm = (diff * 255).astype(np.uint8)
-    return score, diff_norm
-
 def edge_diff(img1: np.ndarray, img2: np.ndarray):
     e1 = cv2.Canny(img1, 50, 150)
     e2 = cv2.Canny(img2, 50, 150)
