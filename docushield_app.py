@@ -189,12 +189,6 @@ def compute_dl_similarity(img1: np.ndarray, img2: np.ndarray, model):
     sim = 1.0 - cosine(emb1, emb2)
     return sim
 
-def preprocess_sig(img_rgb: np.ndarray, size=(400, 200)) -> np.ndarray:
-    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-    resized = cv2.resize(gray, size, interpolation=cv2.INTER_AREA)
-    _, binary = cv2.threshold(resized, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    return binary
-
 def compute_ssim(img1: np.ndarray, img2: np.ndarray):
     score, diff = ssim(img1, img2, full=True)
     diff_norm = (diff * 255).astype(np.uint8)
