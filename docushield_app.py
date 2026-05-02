@@ -211,29 +211,27 @@ def edge_fig(e1, e2, diff, labels):
     plt.tight_layout(pad=0.3)
     return fig
 
-def verdict_html(score, edge_score):
-    # Make algorithm forgiving for human variation while rejecting strict forgeries
-    norm_score = max(0.0, min(1.0, (score - 0.05) / 0.08))
-    norm_edge = max(0.0, min(1.0, edge_score * 10))
+def verdict_html(dl_sim):
+    # Map DL Cosine Similarity (typically 0.6 to 1.0 for signatures) to a strict scale
+    pct = round(dl_sim * 100, 1)
     
-    combined = norm_score * 0.85 + norm_edge * 0.15
-    pct = round(combined * 100, 1)
-    if combined >= 0.75:
-        cls, icon, label, sub = "genuine", "✅", "GENUINE", "Signatures show high structural similarity"
+    if dl_sim >= 0.90:
+        cls, icon, label, sub = "genuine", "✅", "GENUINE / HIGH MATCH", "Signatures share strong structural feature embeddings"
         color = "#4ade80"
-    elif combined >= 0.50:
-        cls, icon, label, sub = "suspicious", "⚠️", "SUSPICIOUS", "Notable differences detected — further review advised"
+    elif dl_sim >= 0.82:
+        cls, icon, label, sub = "suspicious", "⚠️", "SUSPICIOUS", "Embeddings show notable stylistic divergence"
         color = "#fbbf24"
     else:
-        cls, icon, label, sub = "forged", "🚨", "LIKELY FORGED", "Significant structural mismatch detected"
+        cls, icon, label, sub = "forged", "🚨", "LIKELY FORGED", "Deep learning embeddings indicate completely different structures"
         color = "#f87171"
+        
     return f"""
     <div class="result-card {cls}">
         <div class="score-big" style="color:{color}">{pct}%</div>
         <div class="verdict" style="color:{color}">{icon} {label}</div>
         <div class="verdict-sub">{sub}</div>
     </div>
-    """, pct, combined, norm_score, norm_edge
+    """, pct
 
 # ─── ELA ──────────────────────────────────────────────────────────────────────
 
