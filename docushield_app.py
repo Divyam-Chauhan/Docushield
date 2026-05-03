@@ -324,58 +324,27 @@ with tab1:
         st.markdown(f"""
         <div class="metric-row">
             <div class="metric-box">
-                <div class="metric-label">SSIM Match</div>
-                <div class="metric-value">{round(norm_score*100,1)}%</div>
+                <div class="metric-label">Cosine Similarity</div>
+                <div class="metric-value">{round(dl_sim, 4)}</div>
             </div>
             <div class="metric-box">
-                <div class="metric-label">Edge Consistency</div>
-                <div class="metric-value">{round(norm_edge*100,1)}%</div>
-            </div>
-            <div class="metric-box">
-                <div class="metric-label">Combined Score</div>
+                <div class="metric-label">Embedding Match</div>
                 <div class="metric-value">{pct}%</div>
             </div>
             <div class="metric-box">
                 <div class="metric-label">Threshold</div>
-                <div class="metric-value">75% / 50%</div>
+                <div class="metric-value">>90% Genuine</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<div class="section-header">Visual Analysis</div>', unsafe_allow_html=True)
-
-        r1, r2 = st.columns(2)
-        with r1:
-            st.markdown("**Preprocessed Inputs**")
-            fig_in, axes = plt.subplots(1, 2, figsize=(6, 2))
-            fig_in.patch.set_facecolor('#0f172a')
-            for ax, img, lbl in zip(axes, [ref_proc, que_proc], ["Reference", "Questioned"]):
-                ax.set_facecolor('#0f172a')
-                ax.imshow(img, cmap='gray')
-                ax.set_title(lbl, color='#94a3b8', fontsize=9)
-                ax.axis('off')
-            plt.tight_layout(pad=0.3)
-            st.pyplot(fig_in, use_container_width=True)
-            plt.close()
-
-        with r2:
-            st.markdown("**SSIM Difference Heatmap**")
-            fig_hm = heatmap_fig(diff_map, "Green = Similar · Red = Divergent")
-            st.pyplot(fig_hm, use_container_width=True)
-            plt.close()
-
-        st.markdown("**Edge Detection Comparison**")
-        fig_edge = edge_fig(e1, e2, ediff, ["Reference Edges", "Questioned Edges", "Δ Edge Diff"])
-        st.pyplot(fig_edge, use_container_width=True)
-        plt.close()
-
         st.markdown(f"""
         <div style="margin-top:16px">
-            <span class="tag tag-purple">SSIM</span>
-            <span class="tag tag-purple">Edge Detection</span>
-            <span class="tag tag-blue">Otsu Thresholding</span>
-            <span class="tag tag-blue">OpenCV</span>
-            <span class="tag tag-blue">scikit-image</span>
+            <span class="tag tag-purple">MobileNetV2</span>
+            <span class="tag tag-purple">Cosine Similarity</span>
+            <span class="tag tag-blue">PyTorch</span>
+            <span class="tag tag-blue">Torchvision</span>
+            <span class="tag tag-blue">Deep Learning Embeddings</span>
         </div>
         """, unsafe_allow_html=True)
 
