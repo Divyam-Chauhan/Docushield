@@ -295,9 +295,10 @@ def ela_heatmap_fig(original_img, ela_arr):
 tab1, tab2 = st.tabs(["✍️  Approach 1 — Signature SSIM + Edge", "🔬  Approach 2 — Document ELA"])
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 1 — SSIM
+# TAB 1 — Deep Learning Embeddings
 # ══════════════════════════════════════════════════════════════════════════════
 with tab1:
+    dl_model = load_feature_extractor()
     st.markdown('<div class="section-header">Upload Signatures</div>', unsafe_allow_html=True)
     
     c1, c2 = st.columns(2)
@@ -312,15 +313,12 @@ with tab1:
         ref_rgb = load_gray(ref_file)
         que_rgb = load_gray(que_file)
 
-        ref_proc = preprocess_sig(ref_rgb)
-        que_proc = preprocess_sig(que_rgb)
+        with st.spinner("Extracting Deep Learning Embeddings..."):
+            dl_sim = compute_dl_similarity(ref_rgb, que_rgb, dl_model)
 
-        ssim_score, diff_map = compute_ssim(ref_proc, que_proc)
-        edge_score, e1, e2, ediff = edge_diff(ref_proc, que_proc)
+        vhtml, pct = verdict_html(dl_sim)
 
-        vhtml, pct, combined, norm_score, norm_edge = verdict_html(ssim_score, edge_score)
-
-        st.markdown('<div class="section-header">Analysis Result</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">AI Embeddings Result</div>', unsafe_allow_html=True)
         st.markdown(vhtml, unsafe_allow_html=True)
 
         st.markdown(f"""
