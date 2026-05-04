@@ -200,17 +200,6 @@ def heatmap_fig(diff_img: np.ndarray, title: str):
     plt.tight_layout(pad=0.3)
     return fig
 
-def edge_fig(e1, e2, diff, labels):
-    fig, axes = plt.subplots(1, 3, figsize=(9, 2.5))
-    fig.patch.set_facecolor('#0f172a')
-    for ax, img, lbl in zip(axes, [e1, e2, diff], labels):
-        ax.set_facecolor('#0f172a')
-        ax.imshow(img, cmap='Blues' if lbl != 'Δ Edge Diff' else 'Reds')
-        ax.set_title(lbl, color='#94a3b8', fontsize=9)
-        ax.axis('off')
-    plt.tight_layout(pad=0.3)
-    return fig
-
 def verdict_html(dl_sim):
     # Map DL Cosine Similarity (typically 0.6 to 1.0 for signatures) to a strict scale
     pct = round(dl_sim * 100, 1)
