@@ -1,33 +1,33 @@
 # Signature Verification Context & Research Methodology
 
-## Phase 1: The Forgiving Normalization Attempt
+## Phase 1: Initial Approach Using Scaled Normalization
 
 ### The Initial Problem
-When comparing signatures computationally, pixel-perfect algorithms like Structural Similarity Index Measure (SSIM) or raw Edge Differences are inherently **too strict** for human behavior. A human will never sign their name exactly the same way twice—the scale, offset, and stroke width naturally fluctuate. 
+When comparing signatures computationally, direct pixel-comparison algorithms such as Structural Similarity Index Measure (SSIM) or raw edge differences are overly rigid for human handwriting. Human signatures naturally fluctuate in scale, offset, and stroke width. 
 
-In our initial tests using sample signatures, standard mathematical comparisons often scored a **forgery higher than the genuine signature**. This occurs because a forged "tracing" attempts to perfectly overlap the original strokes, artificially boosting pixel-based metrics. Meanwhile, a genuine second attempt flows naturally, missing exact pixel overlaps but retaining the true structural essence of the signature. 
+In preliminary tests, standard mathematical comparisons frequently scored a traced forgery higher than a genuine second attempt. This occurs because a tracing attempts to perfectly overlap the original strokes, inflating pixel-based similarity metrics. Conversely, a genuine second attempt flows naturally; it lacks exact pixel overlap but retains the true structural geometry of the signature.
 
 ### The Interim Solution
-To make the algorithm "forgiving," we applied a **Forgiving Normalization scale**:
-- We mapped the natural human variation range (SSIM `0.05` to `0.13`) to a human-readable `0%` to `100%` scale.
-- We recalibrated the weights to heavily favor this normalized SSIM (85%) over Edge exactness (15%).
-- **Result:** It successfully categorized the genuine signature as >75% and the forged as <50%.
+To make the algorithm accommodate human variation, a scaled normalization method was applied:
+- The natural human variation range for SSIM (typically `0.05` to `0.13`) was mapped to a standard `0%` to `100%` scale.
+- Scoring weights were adjusted to favor this normalized SSIM (85%) over exact edge matching (15%).
+- **Result:** This successfully categorized genuine signatures at >75% similarity and forged ones at <50%.
 
 ---
 
-## Phase 2: Rigorous Cross-Testing and Algorithmic Breakdown
+## Phase 2: Cross-Testing and Algorithmic Breakdown
 
-Upon introducing a wider dataset containing signatures from multiple individuals (e.g., "Divya" vs. "Ayush"), the Forgiving Normalization approach immediately broke down. Two completely different signatures were scoring ~90% similarity. 
+Upon introducing a wider dataset containing signatures from multiple individuals (e.g., "Divya" vs. "Ayush"), the scaled normalization approach failed. Two completely different signatures were incorrectly scoring ~90% similarity. 
 
-### Why did it fail?
-To accommodate natural variation, the algorithm resized bounding boxes and applied Gaussian Blurs. However, blurring two totally different signatures squishes them into generic "horizontal blobs." When passed through the highly-normalized SSIM scoring, these blobs matched each other, resulting in catastrophic false positives.
+### Failure Analysis
+To accommodate natural variation, the algorithm resized bounding boxes and applied Gaussian blurring. However, blurring two entirely different signatures compressed them into generic horizontal shapes. When evaluated using the normalized SSIM scoring, these generalized shapes matched one another, resulting in high false-positive rates.
 
-### Trial & Error of Traditional Computer Vision Techniques
-To find a robust offline signature verification algorithm without resorting to Deep Learning, we exhaustively tested five separate Computer Vision methodologies:
+### Evaluation of Traditional Computer Vision Techniques
+To establish a reliable offline signature verification algorithm without requiring neural networks, five separate computer vision methodologies were evaluated:
 
 1. **SIFT / ORB Keypoint Matching + RANSAC Homography**
-   - *Hypothesis:* If two signatures are from the same person, their keypoints will form a valid geometric transformation.
-   - *Result:* **FAILED.** Signatures are fundamentally thin line-drawings that lack distinct corners and textures. SIFT struggled to find stable keypoints (often returning <5 matches), leading to completely random and inconsistent matching scores.
+   - *Hypothesis:* If two signatures belong to the same person, their keypoints will form a valid geometric transformation.
+   - *Result:* **FAILED.** Signatures are sparse line structures that lack distinct corners and gradients. SIFT struggled to identify stable keypoints (often returning <5 matches), leading to inconsistent similarity scores.
 
 2. **Histogram of Oriented Gradients (HOG) + Cosine Similarity**
    - *Hypothesis:* HOG captures the gradient structure and shape distribution of an image, making it invariant to small local changes.
@@ -42,16 +42,16 @@ To find a robust offline signature verification algorithm without resorting to D
    - *Result:* **FAILED.** The same aspect ratio squishing problem occurred. Totally different signatures matched at 80%+ because the global density of ink in an 8x8 grid is relatively uniform across all human signatures.
 
 5. **Center-of-Mass Padding + Aspect Ratio Penalties**
-   - *Hypothesis:* Instead of resizing the images, pad them to a standard canvas, align their Centers of Mass, and penalize differences in Aspect Ratio.
-   - *Result:* **FAILED.** The penalty wasn't discriminative enough. The absolute structural overlap between two natural attempts from the same human is so small that no combination of padding and blurring could reliably distinguish "different human" from "same human."
+   - *Hypothesis:* Instead of resizing the images, pad them to a standard canvas, align their Centers of Mass, and apply penalties for differences in aspect ratio.
+   - *Result:* **FAILED.** The penalty mechanism lacked discriminative power. The absolute structural overlap between two natural attempts from the same author is minimal; no combination of padding and blurring could reliably distinguish inter-class from intra-class variations.
 
 ---
 
-## Conclusion & Proposed Deep Learning Pivot
-The exhaustive testing definitively proves that **pixel-level overlap and traditional structural computer vision metrics cannot reliably verify offline signatures.** The intra-class variation (how much a single person's signature changes) overlaps too heavily with inter-class variation (how different two people's signatures are).
+## Conclusion & Proposed Deep Learning Transition
+Testing demonstrated that direct pixel overlap and traditional structural computer vision metrics cannot reliably verify offline signatures. The intra-class variation (how much a single author's signature changes) overlaps too heavily with inter-class variation (how different two authors' signatures are).
 
 **The Solution:**
-A massive architectural pivot is required. We must abandon pixel-matching and adopt a **Siamese Neural Network (Deep Learning)** approach. By passing signatures through a pre-trained Convolutional Neural Network (e.g., MobileNetV2), we can extract a high-level "Feature Embedding" that represents the stylistic flow and spatial structure of the signature. Using Cosine Similarity on these deep embeddings is the industry-standard method for achieving robust offline signature verification.
+A structural redesign was necessary. The system shifted from pixel-matching to a **Siamese Neural Network (Deep Learning)** approach. By processing signatures through a pre-trained Convolutional Neural Network (e.g., MobileNetV2), the model extracts a high-level feature embedding that represents the spatial structure of the signature. Utilizing Cosine Similarity on these embeddings is the standard method for achieving reliable offline signature verification.
 
 ---
 
