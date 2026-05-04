@@ -189,17 +189,6 @@ def compute_dl_similarity(img1: np.ndarray, img2: np.ndarray, model):
     sim = 1.0 - cosine(emb1, emb2)
     return sim
 
-def heatmap_fig(diff_img: np.ndarray, title: str):
-    fig, ax = plt.subplots(figsize=(5, 2.5))
-    fig.patch.set_facecolor('#0f172a')
-    ax.set_facecolor('#0f172a')
-    inv = 255 - diff_img
-    ax.imshow(inv, cmap='RdYlGn', vmin=0, vmax=255)
-    ax.set_title(title, color='#94a3b8', fontsize=9)
-    ax.axis('off')
-    plt.tight_layout(pad=0.3)
-    return fig
-
 def verdict_html(dl_sim):
     # Map DL Cosine Similarity (typically 0.6 to 1.0 for signatures) to a strict scale
     pct = round(dl_sim * 100, 1)
