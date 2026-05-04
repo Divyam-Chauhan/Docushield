@@ -52,3 +52,35 @@ The exhaustive testing definitively proves that **pixel-level overlap and tradit
 
 **The Solution:**
 A massive architectural pivot is required. We must abandon pixel-matching and adopt a **Siamese Neural Network (Deep Learning)** approach. By passing signatures through a pre-trained Convolutional Neural Network (e.g., MobileNetV2), we can extract a high-level "Feature Embedding" that represents the stylistic flow and spatial structure of the signature. Using Cosine Similarity on these deep embeddings is the industry-standard method for achieving robust offline signature verification.
+
+---
+
+## Phase 3: Deep Learning Implementation and Embedding Extraction
+
+Following the conclusion of Phase 2, the system architecture was completely refactored to eliminate strict pixel-wise comparisons. The solution was implemented by transitioning from traditional computer vision heuristics to a Deep Learning feature extraction pipeline.
+
+### Architectural Setup
+The core verification engine now utilizes **MobileNetV2**, a lightweight convolutional neural network (CNN) pre-trained on the ImageNet dataset. The primary objective of this network is not image classification, but rather spatial feature extraction. To achieve this:
+- The terminal classification layer (the fully connected head) of the network was removed and replaced with an Identity function.
+- The model operates strictly in evaluation mode (`model.eval()`), utilizing the pre-trained hierarchical filters to capture structural and stylistic patterns rather than categorical identifiers.
+
+### Data Preprocessing Pipeline
+Deep learning models require standardized inputs to generate consistent embeddings. The preprocessing pipeline was redesigned to isolate the signature geometry:
+1. **Grayscale and Thresholding:** The input image is converted to grayscale, and Otsu's thresholding is applied to aggressively separate the ink from the background substrate.
+2. **Bounding Box Cropping:** A contour detection mechanism identifies the spatial limits of the non-zero pixels (the signature itself) and dynamically crops the image. This removes extraneous whitespace, ensuring the CNN's receptive fields focus entirely on the stroke data.
+3. **Tensor Normalization:** The cropped image is resized to a standardized 224x224 resolution, converted into a multi-dimensional PyTorch tensor, and normalized using the standard ImageNet mean and standard deviation matrices.
+
+### Metric Definition: Cosine Similarity
+To evaluate the authenticity of a questioned signature against a reference, the system computes the similarity between their respective feature embeddings. Instead of Euclidean distance, the system utilizes **Cosine Similarity**. 
+- Cosine Similarity measures the cosine of the angle between two multi-dimensional vectors projected in a latent space.
+- Because the magnitude of the vectors can vary depending on image intensity, analyzing the angular difference provides a much more robust measurement of stylistic equivalence. 
+- The resulting similarity metric ranges from `0.0` to `1.0`.
+
+### Threshold Calibration
+Based on the distribution of cosine similarity scores across genuine and forged samples, the verification thresholds were strictly recalibrated:
+- **Genuine / High Match (> 0.90):** The deep feature embeddings exhibit a statistically significant correlation, indicating the same author.
+- **Suspicious (0.82 - 0.89):** The embeddings show notable stylistic divergence. The overall structure is maintained, but granular features conflict, warranting further review.
+- **Likely Forged (< 0.82):** The distance in the latent space confirms a distinct topological structure indicative of a different author or a crude tracing attempt.
+
+### UI Refactoring and Optimization
+With the transition to high-dimensional embeddings, localized spatial mapping (such as SSIM difference heatmaps and Edge detection overlays) became fundamentally incompatible, as deep features represent global style rather than localized pixels. Consequently, the user interface was refactored into a high-level dashboard focused purely on algorithmic metrics, returning Cosine Similarity, Match Percentage, and defined Risk Thresholds to the user.
