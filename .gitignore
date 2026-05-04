@@ -1,6 +1,0 @@
-example signatures/
-.gitignore
-venv/
-__pycache__/
-.planning/
-commit-skill.md
