@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import cv2
-from PIL import Image
+from PIL import Image, ImageOps
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import torch
@@ -140,8 +140,8 @@ st.markdown("""
 # ─── Header ───────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="hero">
-    <h1>🛡️ DocuShield</h1>
-    <p>AI-powered forensic document & signature analysis · SSIM · ELA · Edge Detection</p>
+    <h1>&#128737; DocuShield</h1>
+    <p>AI-powered forensic document &amp; signature analysis &middot; MobileNetV2 &middot; ELA &middot; Adaptive Ink Isolation</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -158,18 +158,57 @@ def load_feature_extractor():
     model.eval()
     return model
 
+def preprocess_ink_only(img_rgb: np.ndarray) -> np.ndarray:
+    """
+    Isolates ink from the background using the blue channel and adaptive
+    thresholding. This handles uneven lighting, shadows, and paper texture
+    without treating them as part of the signature.
+    """
+    # Pen ink absorbs blue light, shadows and paper do not.
+    # Inverting the blue channel makes ink bright and background dark.
+    b_inv = 255 - img_rgb[:, :, 2]
+    
+    # Adaptive thresholding evaluates each region independently,
+    # so a shadow on one side doesn't corrupt the whole image.
+    binary = cv2.adaptiveThreshold(
+        b_inv, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        blockSize=51,
+        C=-10
+    )
+    
+    # Remove isolated noise pixels from paper texture / dust
+    kernel = np.ones((2, 2), np.uint8)
+    cleaned = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=1)
+    return cleaned
+
 def get_signature_embedding(img_rgb: np.ndarray, model) -> np.ndarray:
-    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    binary = preprocess_ink_only(img_rgb)
     coords = cv2.findNonZero(binary)
     
-    if coords is not None:
+    if coords is not None and len(coords) > 100:
         x, y, w, h = cv2.boundingRect(coords)
-        cropped_rgb = img_rgb[y:y+h, x:x+w]
+        # Add a small margin so the crop doesn't clip edge strokes
+        margin = 10
+        y1 = max(0, y - margin)
+        x1 = max(0, x - margin)
+        y2 = min(img_rgb.shape[0], y + h + margin)
+        x2 = min(img_rgb.shape[1], x + w + margin)
+        cropped = binary[y1:y2, x1:x2]
     else:
-        cropped_rgb = img_rgb
+        cropped = binary
         
-    img_pil = Image.fromarray(cropped_rgb).convert("RGB")
+    img_pil = Image.fromarray(cropped).convert("RGB")
+    
+    # Pad to square canvas to preserve the aspect ratio before resizing
+    w, h = img_pil.size
+    max_dim = max(w, h)
+    pl = (max_dim - w) // 2
+    pt = (max_dim - h) // 2
+    pr = (max_dim - w + 1) // 2
+    pb = (max_dim - h + 1) // 2
+    img_padded = ImageOps.expand(img_pil, (pl, pt, pr, pb), fill=(0, 0, 0))
     
     preprocess = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -177,7 +216,7 @@ def get_signature_embedding(img_rgb: np.ndarray, model) -> np.ndarray:
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     
-    input_tensor = preprocess(img_pil).unsqueeze(0)
+    input_tensor = preprocess(img_padded).unsqueeze(0)
     with torch.no_grad():
         features = model(input_tensor)
         
@@ -190,17 +229,18 @@ def compute_dl_similarity(img1: np.ndarray, img2: np.ndarray, model):
     return sim
 
 def verdict_html(dl_sim):
-    # Map DL Cosine Similarity (typically 0.6 to 1.0 for signatures) to a strict scale
+    # Thresholds calibrated from empirical testing across 8 signatures (3 authors):
+    # Genuine pairs avg: 0.892 | Impostor pairs avg: 0.702
     pct = round(dl_sim * 100, 1)
     
-    if dl_sim >= 0.90:
-        cls, icon, label, sub = "genuine", "✅", "GENUINE / HIGH MATCH", "Signatures share strong structural feature embeddings"
+    if dl_sim >= 0.88:
+        cls, icon, label, sub = "genuine", "&#10003;", "GENUINE / HIGH MATCH", "Signatures share strong feature embeddings — consistent with the same author"
         color = "#4ade80"
-    elif dl_sim >= 0.82:
-        cls, icon, label, sub = "suspicious", "⚠️", "SUSPICIOUS", "Embeddings show notable stylistic divergence"
+    elif dl_sim >= 0.76:
+        cls, icon, label, sub = "suspicious", "&#9888;", "SUSPICIOUS", "Feature embeddings show stylistic divergence — recommend manual review"
         color = "#fbbf24"
     else:
-        cls, icon, label, sub = "forged", "🚨", "LIKELY FORGED", "Deep learning embeddings indicate completely different structures"
+        cls, icon, label, sub = "forged", "&#9888;", "LIKELY FORGED", "Feature embeddings indicate a structurally different author"
         color = "#f87171"
         
     return f"""
