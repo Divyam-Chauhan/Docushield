@@ -351,7 +351,11 @@ with tab1:
             </div>
             <div class="metric-box">
                 <div class="metric-label">Threshold</div>
-                <div class="metric-value">>90% Genuine</div>
+                <div class="metric-value">>88% Genuine</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Impostor Avg</div>
+                <div class="metric-value">~70%</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
