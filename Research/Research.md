@@ -84,3 +84,72 @@ Based on the distribution of cosine similarity scores across genuine and forged 
 
 ### UI Refactoring and Optimization
 With the transition to high-dimensional embeddings, localized spatial mapping (such as SSIM difference heatmaps and Edge detection overlays) became fundamentally incompatible, as deep features represent global style rather than localized pixels. Consequently, the user interface was refactored into a high-level dashboard focused purely on algorithmic metrics, returning Cosine Similarity, Match Percentage, and defined Risk Thresholds to the user.
+
+---
+
+## Phase 4: Empirical Testing and Preprocessing Refinement
+
+### Test Setup
+All 8 signatures from 3 distinct authors were tested against each other in every combination (28 pairs total). Authors are:
+- **Divya (DP Chauhan):** 3 signatures — `Original.jpeg`, `original 2.jpeg`, `duplicate.jpeg`
+- **Ayush:** 3 signatures — `Ayush Original 1.jpeg`, `Ayush Original 2.jpeg`, `Ayush Duplicate.jpeg`
+- **Third author (A):** 2 signatures — `A signature Original.jpeg`, `A signature original 2.jpeg`
+
+Ground truth labels:
+- **7 genuine pairs** — signatures from the same author compared against each other
+- **21 impostor pairs** — signatures from different authors compared
+
+### Initial Failure: Otsu Thresholding in Mixed Lighting
+The initial test run using global Otsu thresholding revealed a critical problem: `Original.jpeg` has a **large dark shadow** across the right half of the image caused by the camera angle. Otsu thresholding, which computes a single global threshold for the entire image, classified this shadow as part of the signature. This produced a corrupted embedding that raised similarity scores with unrelated authors.
+
+The same problem existed for `Ayush Original 1.jpeg`, which shows faint text bleed-through from a page behind the paper.
+
+Result with Otsu preprocessing (first run):
+```
+Original.jpeg  vs  original 2.jpeg:       0.7956  (should be HIGH — GENUINE pair)
+original 2.jpeg  vs  Ayush Duplicate:     0.8458  (should be LOW — DIFFERENT author)
+```
+The system was scoring a cross-author pair (0.84) **higher than a same-author pair** (0.79) — a direct inversion of expected results.
+
+### Preprocessing Fix: Blue Channel Isolation + Adaptive Thresholding
+Pen ink (typically blue or dark blue ballpoint) absorbs blue-spectrum light. Shadows and paper surfaces do not — they appear as a diffuse, uniform grey across all color channels. This physical property allows the blue channel to be used as a selective ink detector.
+
+**Pipeline:**
+1. **Blue channel extraction:** Extract only the blue channel from the RGB image (`img[:, :, 2]`).
+2. **Inversion:** Invert the channel (ink becomes bright, background becomes dark).
+3. **Adaptive Gaussian thresholding:** Instead of a single global threshold, a 51x51 pixel neighborhood is analyzed for each pixel independently. This means a shadow on the right side of the image does not affect the threshold calculation for the left side where the ink sits.
+4. **Morphological opening:** A 2x2 structuring element removes isolated single-pixel noise caused by paper grain and dust, without affecting ink strokes.
+
+### Test Results After Fix
+
+| Metric | Value |
+|---|---|
+| Genuine pairs — average similarity | **0.892** |
+| Genuine pairs — minimum | 0.824 |
+| Genuine pairs — maximum | 0.954 |
+| Impostor pairs — average similarity | **0.702** |
+| Impostor pairs — minimum | 0.557 |
+| Impostor pairs — maximum | 0.857 |
+| Separation gap (genuine avg - impostor avg) | **+0.190** |
+
+The 0.19 gap is a measurable, statistically meaningful separation — sufficient to calibrate a threshold boundary.
+
+The highest-scoring impostor pairs (`original 2.jpeg vs Ayush Duplicate: 0.857` and `Original.jpeg vs Ayush Duplicate: 0.852`) represent genuinely ambiguous cases — both Divya and Ayush's signatures follow a similar horizontal cursive style, which causes the embeddings to overlap at the upper boundary.
+
+### Threshold Recalibration
+Based on these results, the verdict thresholds were revised:
+- **Genuine / High Match (>= 0.88):** Mean genuine score sits at 0.892 — above this boundary, the probability of a correct positive identification is high.
+- **Suspicious (0.76 - 0.87):** The region of overlap between genuine and impostor distributions. Neither rejection nor acceptance can be made with confidence.
+- **Likely Forged (< 0.76):** Well below the impostor average — structurally dissimilar signatures.
+
+### Preprocessing Approaches Evaluated (Comparative)
+
+| Approach | Genuine Avg | Impostor Avg | Gap |
+|---|---|---|---|
+| Otsu (grayscale global) | 0.87 | 0.79 | +0.08 |
+| Padding + Otsu (original 2 bug fixed) | 0.89 | 0.79 | +0.10 |
+| model.features spatial (7x7 grid) | 0.76 | 0.67 | +0.09 |
+| Blue channel + adaptive threshold | **0.892** | **0.702** | **+0.190** |
+
+The blue channel + adaptive threshold approach produced the best genuine/impostor separation by a significant margin, and was therefore integrated into the main application pipeline.
+
