@@ -3,7 +3,6 @@ import numpy as np
 import cv2
 from PIL import Image, ImageOps
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
