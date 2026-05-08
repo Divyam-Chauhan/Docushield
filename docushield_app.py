@@ -307,7 +307,7 @@ def ela_heatmap_fig(original_img, ela_arr):
 
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-tab1, tab2 = st.tabs(["✍️  Approach 1 — Signature SSIM + Edge", "🔬  Approach 2 — Document ELA"])
+tab1, tab2 = st.tabs(["✍️  Approach 1 — Signature Verification", "🔬  Approach 2 — Document ELA"])
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — Deep Learning Embeddings
