@@ -8,7 +8,6 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from scipy.spatial.distance import cosine
 import io
-import tempfile
 import os
 
 st.set_page_config(
