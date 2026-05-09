@@ -91,7 +91,7 @@ With the transition to high-dimensional embeddings, localized spatial mapping (s
 
 ### Test Setup
 All 8 signatures from 3 distinct authors were tested against each other in every combination (28 pairs total). Authors are:
-- **Divya (DP Chauhan):** 3 signatures — `Original.jpeg`, `original 2.jpeg`, `duplicate.jpeg`
+- **Divya (DPSChauhan):** 3 signatures — `Original.jpeg`, `original 2.jpeg`, `duplicate.jpeg`
 - **Ayush:** 3 signatures — `Ayush Original 1.jpeg`, `Ayush Original 2.jpeg`, `Ayush Duplicate.jpeg`
 - **Third author (A):** 2 signatures — `A signature Original.jpeg`, `A signature original 2.jpeg`
 
