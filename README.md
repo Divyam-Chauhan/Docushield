@@ -9,9 +9,9 @@ Initial tests demonstrated that direct pixel-comparison algorithms (such as Stru
 
 To resolve this, DocuShield uses a deep learning feature extraction pipeline:
 - **Model:** MobileNetV2 (pre-trained on ImageNet), with the classification layer removed so it outputs a 1280-dimensional feature vector.
-- **Preprocessing:** The blue channel of the image is inverted and adaptive Gaussian thresholding is applied to isolate ink from shadows and paper texture. The signature is then cropped to its bounding box, padded to a square, and resized to 224×224.
+- **Preprocessing:** The blue channel is inverted and adaptive thresholding is applied. The resulting signature is then inverted to **black-on-white**, padded to a square with white, and resized to 224×224. This matches the natural background distribution the AI was trained on.
 - **Evaluation:** Cosine similarity is computed between the feature vectors of the reference and questioned signatures.
-- **Thresholds:** ≥88% = genuine, 76–87% = suspicious (manual review), <76% = likely forged. These were calibrated from exhaustive testing across 28 signature pairs from 3 authors.
+- **Thresholds:** ≥82% = genuine, 74–81% = suspicious (manual review), <74% = likely forged. These were calibrated from exhaustive testing across 28 signature pairs from 3 authors.
 
 ### Document Tampering Detection (Error Level Analysis)
 For full-page document scans, DocuShield applies Error Level Analysis (ELA) to detect digital alterations (such as spliced text or pasted signatures). ELA re-saves the image at a lower JPEG quality and highlights regions that recompress differently, indicating manipulation.

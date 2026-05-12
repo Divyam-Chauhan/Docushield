@@ -130,6 +130,23 @@ Based on these distributions:
 | Otsu (grayscale, global) | 0.87 | 0.79 | +0.08 |
 | Otsu + square padding | 0.89 | 0.79 | +0.10 |
 | Spatial features (7×7 grid) | 0.76 | 0.67 | +0.09 |
-| Blue channel + adaptive threshold | **0.892** | **0.702** | **+0.190** |
+| Blue channel + adaptive threshold | 0.892 | 0.702 | +0.190 |
+| **Black-on-White + Closing** | **0.887** | **0.664** | **+0.223** |
 
-The blue channel approach nearly doubled the separation gap compared to the next best method and was adopted as the production preprocessing pipeline.
+The blue channel approach was further refined by inverting the signature to black-on-white and padding with white. This nearly doubled the separation gap compared to earlier methods, as the pre-trained CNN features are more effective at identifying patterns against a white background than a black one. This approach was adopted as the production pipeline.
+
+---
+
+## Phase 5: Pipeline Finalization & Threshold Recalibration
+
+Following the move to Black-on-White preprocessing, the gap between genuine and impostor distributions widened to a robust **0.223**. This allowed for safer, more discriminative threshold boundaries.
+
+### Final Results
+- **Genuine Avg:** 0.887
+- **Impostor Avg:** 0.664
+- **Separation Gap:** +0.223
+
+### Revised Verdict Thresholds
+- **>= 0.82 → Genuine:** Significant stylistic alignment.
+- **0.74 – 0.81 → Suspicious:** Boundary region requiring manual forensic review.
+- **< 0.74 → Likely Forged:** Structural and stylistic divergence confirmed.

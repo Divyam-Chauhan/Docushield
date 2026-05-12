@@ -178,34 +178,41 @@ def preprocess_ink_only(img_rgb: np.ndarray) -> np.ndarray:
     # Remove isolated noise pixels from paper texture / dust
     kernel = np.ones((2, 2), np.uint8)
     cleaned = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=1)
-    return cleaned
+    
+    # Fill small gaps in strokes to make them continuous for the CNN
+    kernel_close = np.ones((3, 3), np.uint8)
+    processed = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, kernel_close)
+    return processed
 
 def get_signature_embedding(img_rgb: np.ndarray, model) -> np.ndarray:
     binary = preprocess_ink_only(img_rgb)
-    coords = cv2.findNonZero(binary)
     
+    # Invert to Black ink on White background for better feature extraction.
+    # Most CNNs are trained on natural/white backgrounds.
+    processed = 255 - binary
+    
+    coords = cv2.findNonZero(binary)
     if coords is not None and len(coords) > 100:
         x, y, w, h = cv2.boundingRect(coords)
-        # Add a small margin so the crop doesn't clip edge strokes
-        margin = 10
+        margin = 15
         y1 = max(0, y - margin)
         x1 = max(0, x - margin)
         y2 = min(img_rgb.shape[0], y + h + margin)
         x2 = min(img_rgb.shape[1], x + w + margin)
-        cropped = binary[y1:y2, x1:x2]
+        cropped = processed[y1:y2, x1:x2]
     else:
-        cropped = binary
+        cropped = processed
         
     img_pil = Image.fromarray(cropped).convert("RGB")
     
-    # Pad to square canvas to preserve the aspect ratio before resizing
+    # Pad to square (White canvas) to preserve aspect ratio
     w, h = img_pil.size
     max_dim = max(w, h)
     pl = (max_dim - w) // 2
     pt = (max_dim - h) // 2
     pr = (max_dim - w + 1) // 2
     pb = (max_dim - h + 1) // 2
-    img_padded = ImageOps.expand(img_pil, (pl, pt, pr, pb), fill=(0, 0, 0))
+    img_padded = ImageOps.expand(img_pil, (pl, pt, pr, pb), fill=(255, 255, 255))
     
     preprocess = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -226,14 +233,14 @@ def compute_dl_similarity(img1: np.ndarray, img2: np.ndarray, model):
     return sim
 
 def verdict_html(dl_sim):
-    # Thresholds calibrated from empirical testing across 8 signatures (3 authors):
-    # Genuine pairs avg: 0.892 | Impostor pairs avg: 0.702
+    # Thresholds calibrated from Black-on-White empirical testing (Phase 5):
+    # Genuine avg: 0.887 | Impostor avg: 0.664 | Gap: +0.223
     pct = round(dl_sim * 100, 1)
     
-    if dl_sim >= 0.88:
+    if dl_sim >= 0.82:
         cls, icon, label, sub = "genuine", "&#10003;", "GENUINE / HIGH MATCH", "Signatures share strong feature embeddings — consistent with the same author"
         color = "#4ade80"
-    elif dl_sim >= 0.76:
+    elif dl_sim >= 0.74:
         cls, icon, label, sub = "suspicious", "&#9888;", "SUSPICIOUS", "Feature embeddings show stylistic divergence — recommend manual review"
         color = "#fbbf24"
     else:
@@ -348,11 +355,11 @@ with tab1:
             </div>
             <div class="metric-box">
                 <div class="metric-label">Threshold</div>
-                <div class="metric-value">>88% Genuine</div>
+                <div class="metric-value">>82% Genuine</div>
             </div>
             <div class="metric-box">
                 <div class="metric-label">Impostor Avg</div>
-                <div class="metric-value">~70%</div>
+                <div class="metric-value">~66%</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
