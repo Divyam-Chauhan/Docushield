@@ -38,6 +38,4 @@ For full-page document scans, DocuShield applies Error Level Analysis (ELA) to d
 ## Repository Structure
 - `docushield_app.py`: The main Streamlit application — preprocessing, embedding extraction, verification logic, and ELA.
 - `Research/Research.md`: Full documentation of every approach tested, why each failed or succeeded, and the empirical data behind the current thresholds.
-- `test_adaptive.py`: Exhaustive 28-pair test harness for all signature combinations.
-- `verify_pipeline.py`: Independent verification script that validates the app's pipeline against the claims in Research.md.
 - `example signatures/`: Sample signatures from 3 authors used for testing.
